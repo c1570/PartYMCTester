@@ -1,0 +1,48 @@
+.program samplepin_pio
+
+.wrap_target
+wt:                ; wait for gpio16 high OR gpio17 low
+    in pins, 2     ; have (~gpio17)|gpio16 in ISR: gpio17 is inverted by gpio_set_inover()
+    mov y, isr
+    jmp !y wt      ; y==0 means gpio16 is low and gpio17 is high: wait
+
+    mov y, x       ; move x (set in init) to delay variable
+loop:
+    jmp y-- loop
+
+    mov osr, pins
+    out null, 5    ; ignore pins 16,17,18,19,20
+    in osr, 1      ; get pin 21
+    push
+    wait 0 gpio 16 ; wait for strobe pins to settle again
+    wait 0 gpio 17 ; gpio 17 is inverted by gpio_set_inover()
+.wrap
+
+% c-sdk {
+static inline void samplepin_pio_program_init(PIO pio, uint sm, uint offset, uint pin_sample, uint pin_pos_strobe, uint pin_neg_strobe, uint32_t clk_delay, float div) {
+    assert(pin_pos_strobe == 16);
+    assert(pin_neg_strobe == 17);
+    assert(pin_sample == 21);
+    assert(pio == pio0);
+    gpio_set_function(pin_pos_strobe, GPIO_FUNC_PIO0);
+    gpio_set_function(pin_neg_strobe, GPIO_FUNC_PIO0);
+    gpio_set_inover(pin_neg_strobe, GPIO_OVERRIDE_INVERT);
+
+    pio_sm_config c = samplepin_pio_program_get_default_config(offset);
+    sm_config_set_in_pins(&c, pin_pos_strobe);
+    sm_config_set_in_shift(&c, false /* true: shift ISR right */, false, 0);
+    sm_config_set_out_shift(&c, true /* true: shift OSR right */, false, 0);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX); // we don't use the TX FIFO
+
+    pio_sm_set_pindirs_with_mask(pio, sm, 0, (1 << pin_sample) | (1 << pin_pos_strobe) | (1 << pin_neg_strobe)); // all inputs
+    
+    // Load our configuration, and jump to the start of the program
+    pio_sm_init(pio, sm, offset, &c);
+    // Set PIO clock divider
+    pio_sm_set_clkdiv(pio, sm, div);
+    // Init X delay counter
+    pio_sm_put(pio, sm, clk_delay);
+    pio_sm_exec(pio, sm, pio_encode_pull(false, true));
+    pio_sm_exec(pio, sm, pio_encode_out(pio_x, 32));
+}
+%}
