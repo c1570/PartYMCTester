@@ -18,8 +18,8 @@
 
 const uint32_t MAX_BRIGHTNESS = 100;
 const uint32_t FREQ_LED_COL = ((MAX_BRIGHTNESS >> 5) << 16) | ((MAX_BRIGHTNESS >> 5) << 8) | (MAX_BRIGHTNESS >> 1); // blue-ish
-const uint32_t SAMPLE_LED_COL_ONE = ((MAX_BRIGHTNESS >> 3) << 16) | ((MAX_BRIGHTNESS >> 4) << 8); // orange
-const uint32_t SAMPLE_LED_COL_ZERO = MAX_BRIGHTNESS >> 6; // dark blue
+const uint32_t SAMPLE_LED_COL_ONE = ((MAX_BRIGHTNESS >> 1) << 16) | ((MAX_BRIGHTNESS >> 2) << 8); // bright orange
+const uint32_t SAMPLE_LED_COL_ZERO = ((MAX_BRIGHTNESS >> 5) << 8) | (MAX_BRIGHTNESS >> 5); // dark cyan
 
 const uint32_t PULSE_PIN_ADC = 26;
 const uint32_t PULSE_PIN = 21; // hardcoded in PIO, has to be a PWM B pin
@@ -289,12 +289,12 @@ int main() {
           if(intensity > 0) neopixel.setPixelColor(1 + (i << 1), color_intensity(color, intensity));
           mask <<= 1;
         }
-      } else {
+      } else if(sampled_bits_remaining < 64) {
         // sampled bits
         uint64_t sample = sampled_bits;
         if(sampled_bits_remaining) {
-          for(uint i = 0; i < 32; i++) {
-            if(sample&1) neopixel.setPixelColor((i << 1) + 1, SAMPLE_LED_COL_ONE);
+          for(uint i = 0; i < std::min(63 - sampled_bits_remaining, 32u); i++) {
+            neopixel.setPixelColor((i << 1) + 1, (sample&1) ? SAMPLE_LED_COL_ONE : SAMPLE_LED_COL_ZERO);
             sample >>= 1;
           }
         } else {
@@ -312,6 +312,9 @@ int main() {
 
     // in compare mode, ADC capacitance would mess with COMPARE input readings
     if(compare_mode) continue;
+
+    // don't bother with analog readings once bit sampling has completed
+    if(!sampled_bits_remaining) continue;
 
     // pulse pin analog histogram
     adc_select_input(PULSE_PIN_ADC - 26);
