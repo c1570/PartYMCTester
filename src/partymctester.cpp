@@ -150,7 +150,7 @@ int main() {
       case 20: // 2^19 = ~1MHz (Phi)
       case 21: // 2^20 = ~2MHz (CAS/RAS)
       case 23: // 2^22 = ~8MHz (Dot Clock)
-        counter_colors[j] = MAX_BRIGHTNESS << 8;
+        counter_colors[j] = (MAX_BRIGHTNESS >> 2) << 8;
         break;
       default:
         counter_colors[j] = (MAX_BRIGHTNESS >> 5) << 16;
@@ -193,12 +193,15 @@ int main() {
   uint64_t have_signal_since = 0;
   bool compare_matching = 1;
   bool compare_mode = 0;
+  uint32_t count_prev = 0;
+  uint32_t count2_prev = 0;
   while(1) {
     const uint32_t iterations = 50*10; // for about 10 seconds...
     uint32_t pulse_counts[iterations];
     neopixel.clear();
     float freq_led = WSLEDS_COUNT + 1;
     for(uint j = 0; j < iterations; j++) {
+      uint32_t psrand = j;
       uint32_t count = pulse_count;
       __compiler_memory_barrier();
       uint32_t count2 = compare_count;
@@ -249,27 +252,42 @@ int main() {
 
       // binary counter
       uint32_t freq_led_int = round(freq_led);
-      uint32_t outp = count;
+      uint32_t mask = 1;
       for(uint i = 0; i < 32; i++) {
-        if(outp&1) {
+        float intensity = 0;
+        psrand++;
+        if((count - count_prev) > mask) {
+          // counting too fast for this digit: prevent aliasing effects, make LED flicker dimly
+          intensity = (psrand & 1) ? 0.4 : 0.7;
+        } else if(count & mask) intensity = 1;
+        if(intensity > 0) {
           uint32_t color;
           if(compare_mode) {
             color = compare_matching ? 0x002000 : 0x200000; // green: match, red: mismatch
           } else {
             color = counter_colors[i];
           }
-          neopixel.setPixelColor(i << 1, (i << 1) == freq_led_int ? color : color_intensity(color, 0.5));
+          if(intensity == 1)
+            if((i << 1) != freq_led_int) intensity *= 0.5;
+          neopixel.setPixelColor(i << 1, color_intensity(color, intensity));
         }
-        outp >>= 1;
+        mask <<= 1;
       }
+      count_prev = count;
 
       if(compare_mode) {
         // compare counter
-        outp = count2;
+        mask = 1;
         uint32_t color = compare_matching ? 0x0a200a : 0x200a00; // pale green: match, pale red: mismatch
         for(uint i = 0; i < 32; i++) {
-          if(outp&1) neopixel.setPixelColor(1 + (i << 1), color);
-          outp >>= 1;
+          float intensity = 0;
+          psrand++;
+          if((count2 - count2_prev) > mask) {
+            // counting too fast for this digit: prevent aliasing effects, make LED flicker dimly
+            intensity = (psrand & 1) ? 0.4 : 0.7;
+          } else if(count2 & mask) intensity = 1;
+          if(intensity > 0) neopixel.setPixelColor(1 + (i << 1), color_intensity(color, intensity));
+          mask <<= 1;
         }
       } else {
         // sampled bits
@@ -286,6 +304,7 @@ int main() {
           }
         }
       }
+      count2_prev = count2;
 
       neopixel.show();
       busy_wait_us(20000);
