@@ -16,6 +16,8 @@
 #include "hardware/clocks.h"
 #endif
 
+const uint SYS_CLK_KHZ = 400000;
+
 const uint32_t MAX_BRIGHTNESS = 100;
 const uint32_t FREQ_LED_COL = ((MAX_BRIGHTNESS >> 5) << 16) | ((MAX_BRIGHTNESS >> 5) << 8) | (MAX_BRIGHTNESS >> 1); // blue-ish
 const uint32_t SAMPLE_LED_COL_ONE = ((MAX_BRIGHTNESS >> 1) << 16) | ((MAX_BRIGHTNESS >> 2) << 8); // bright orange
@@ -29,7 +31,7 @@ const uint32_t STROBE_NEGEDGE_PIN = 17; // hardcoded in PIO
 const uint32_t START_POSEDGE_PIN = 18;
 const uint32_t START_NEGEDGE_PIN = 20;
 
-const uint32_t SAMPLE_DELAY = 10; // delay (in clks) after rising edge on strobe pin until sampling
+const uint32_t SAMPLE_DELAY_NS = 120; // delay (in nanoseconds) after edge on strobe pin until sampling
 
 const uint32_t WSLEDS_PIN = 2;
 
@@ -122,7 +124,7 @@ int main() {
   // set system clock
   vreg_set_voltage(VREG_VOLTAGE_1_30);
   busy_wait_us(10000);
-  set_sys_clock_khz(400000, true);
+  set_sys_clock_khz(SYS_CLK_KHZ, true);
   busy_wait_us(10000);
 
   gpio_put(LED_PIN, 0);
@@ -165,9 +167,7 @@ int main() {
   // set up PIO pin sampling
   uint offset = pio_add_program(pio, &samplepin_pio_program);
   samplepin_pio_sm = pio_claim_unused_sm(pio, true);
-  samplepin_pio_program_init(pio, samplepin_pio_sm, offset, PULSE_PIN, STROBE_POSEDGE_PIN, STROBE_NEGEDGE_PIN, SAMPLE_DELAY, 1);
-  //busy_wait_us(1000000);
-  //printf("samplepin pio offset: %d\n", offset);
+  samplepin_pio_program_init(pio, samplepin_pio_sm, offset, PULSE_PIN, STROBE_POSEDGE_PIN, STROBE_NEGEDGE_PIN, SAMPLE_DELAY_NS / (1000000 / SYS_CLK_KHZ), 1);
 
   // set up PWM pulse counters
   counter1_slice = pulse_counter_init(PULSE_PIN);

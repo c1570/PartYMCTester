@@ -20,26 +20,27 @@ Above: Waiting for signal on START pins
 
 ![Counting](docs/counting.gif)
 
-Above: Counting impulses on IN pin as binary.
+Above: Counting pulses on IN pin as binary. This is the default mode.
 LSB/bit 0 is lower right corner, MSB/bit 31 is upper left corner.
 You can deduce signal frequency by finding the LED that flashes about once per second (the blue 'eye' helps with that).
 Here, you see 1MHz, 2MHz, 3MHz.
 Green LEDs signify some frequencies/digits relevant in context with the [Commodore 64](https://en.wikipedia.org/wiki/Commodore_64): ~60Hz (IRQ), ~1kHz (BA/Badlines), ~1MHz (Phi), ~2MHz (CAS/RAS), ~8MHz (Dotclk).
-Default mode. Switching to analog signal histogram and back every few seconds.
+Switching to analog signal histogram and back every few seconds.
 
 ![Comparing, ok](docs/compareok.gif)
 
-Above: Counting/comparing impulses on IN and COMPARE pins, here: match.
+Above: Counting/comparing pulses on IN and COMPARE pins, here: match.
 Enabled if signal on COMPARE pin present.
 
 ![Comparing, fail](docs/comparefail.gif)
 
-Above: Comparing IN and COMPARE, here: fail (note the non-matching binary counts when stopped)
+Above: Comparing IN and COMPARE, here: mismatch (note the non-matching binary counts when stopped)
 
 ![Sampling 64 bits](docs/sampling.gif)
 
-Above: Sampling 64 bits from IN on SAMPLE pulses (here: 10 Hertz on SAMPLE pin, manual toggling on IN pin).
+Above: Sampling 64 bits from IN, sampling 120ns after signal edge on SAMPLE pin (here: 10 Hertz on SAMPLE pin, manual toggling on IN pin).
 Enabled on signal on SAMPLE pin.
+To change the 120ns delay, you have to recompile.
 
 ![Analog histogram](docs/histogram.gif)
 
