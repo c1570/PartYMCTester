@@ -46,9 +46,9 @@ Analog signal histogram. This gets displayed in counting mode every few seconds.
 * Here, you see:
   * 1Hz sine - wandering line
   * 1KHz sine - long top line, long bottom line, shorter lines in between, meaning the signal is often at max and min voltage, and less time in between.
-  * 1KHz square - long top line, long bottom line, nothing between: The signal only uses max and min voltages.
+  * 1KHz square - long top line, long bottom line, almost nothing between: The signal only uses max and min voltages.
 * This mode will help with detecting broken digital outputs and broken pull-ups/pull-downs.
-  * A proper digital signal will have characteristics similar to square waves (i.e., no intermediate voltages).
+  * A proper digital signal will have characteristics similar to square waves (i.e., almost no intermediate voltages).
 
 ### COMPARE mode
 
@@ -108,8 +108,8 @@ Upload the UF2 file to the Pico and off you go.
 
 Using a simple voltage divider as input has a few drawbacks:
 * the RP's ADC input capacitance (about 5pF) is visible somewhat on IN pins
-  * ADC readings will be most accurate if the signal (max. 3.3V then) is connected to GPIO 26, but the counter will work up to about 5MHz only then.
-  * The counter will work up to at least 10MHz (probably more) if the signal (max. 5V then) is connected to GPIO 21 but ADC readings will be way off if the signal goes above about 3MHz.
+  * GPIO 26 (max. 3.3V) will result in most accurate ADC readings, but the counter will work up to about 5MHz only then and might skip low duty pulses.
+  * GPIO 21 (max. 5V) will count properly up to at least 10MHz (probably more) but ADC readings will be way off if the signal goes above about 3MHz.
 * input impedance is 10/15.6k so very high impedance signals will not work.
 
 If you don't need the analog histogram you can leave away the resistors, giving high input impedance and little parasitic input capacity.

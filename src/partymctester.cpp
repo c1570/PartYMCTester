@@ -333,6 +333,7 @@ int main() {
       for(uint y = 0; y < WSLEDS_HEIGHT; y++) {
         float buck_count = analog_buckets[y];
         float q = buck_count / max;
+        if(buck_count > 0) q = std::max(q, 0.11f); // make sure digital signals with very low duty don't become invisible
         uint32_t color = bucket_colors[y];
         for(uint x = 0; x < WSLEDS_WIDTH; x++) {
           float f_x = x;
